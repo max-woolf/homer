@@ -19,6 +19,7 @@ import shutil
 import markdown
 import time
 import typing
+from pathlib import Path
 
 verbose = True
 
@@ -32,6 +33,29 @@ def remkdir(path: str):
         shutil.rmtree(path)        
     if verbose: print(f"creating new build directory: /{path}/")
     os.makedirs(path)
+
+def get_filepaths(rootdir, file, reldir):
+    """
+    Returns fullpath and relative path of file
+    """
+    fullpath = os.path.join(rootdir, file)
+    relpath = os.path.relpath(fullpath, reldir)
+    if verbose: print(f"{file} (path: {fullpath} / relpath: {relpath})")
+
+    return fullpath, relpath
+
+def copy_recursive(src, dst, rel):
+
+    # Construct destination path
+    dstpath = Path(dst) / rel
+
+    if verbose: print (f"copying '{src}' -> '{dstpath}'")
+
+    # Create subdirectories if needed
+    dstpath.parent.mkdir(parents=True, exist_ok=True)
+
+    # Copy the file
+    shutil.copy2(src, dstpath)
 
 
 class HtmlRenderObj:
@@ -78,45 +102,55 @@ class Homer:
         # <<<< walk loop start
         for (wroot, wdirs, wfiles) in os.walk(self.mounted_dir, topdown=True):
         
-            if verbose: print(f"\n=== build files ===\nroot: {wroot}\ndirs: {wdirs}\nfilenames: {wfiles}\n\n")
+            if verbose: print(f"\n=== build files ===\nroot: {wroot}\ndirs: {wdirs}\nfilenames: {wfiles}\n")
 
             # <<<< file loop start
-
+            if verbose: print(f"<<<< file loop start\n")
             for file in wfiles:
 
                 # >>> MARKDOWN
-                if verbose: print(f"rendering markdown files to html...")
+                if verbose: print(f"markdown...")
                 if file.endswith(".md"):
-                    md_filepath = os.path.join(wroot, file)
-                    md_relpath = os.path.relpath(md_filepath, self.mounted_dir)
-                    if verbose: print(f"\n- {file}\npath: {md_filepath}\nrelpath: {md_relpath}\n")
+                    fullpath, relpath = get_filepaths(wroot, file, self.mounted_dir)
 
                     # read md file to str
-                    with open(md_filepath, "r", encoding='utf-8') as f:
+                    with open(fullpath, "r", encoding='utf-8') as f:
                         md_buf = f.read()
 
                     # convert str to html
                     html_content_buf = markdown.markdown(md_buf) # html conversion buffer
 
                     # prepare & add to html buffer
-                    html_render_relpath = md_relpath.replace(".md", ".html")
+                    html_render_relpath = relpath.replace(".md", ".html")
                     html_render_obj_buf.append(HtmlRenderObj(html_content_buf, html_render_relpath))
 
                 # >>> HTML
-                if verbose: print(f"reading html files...")
+                if verbose: print(f"html...")
                 if file.endswith(".html"):
-                    html_filepath = os.path.join(wroot, file)
-                    html_relpath = os.path.relpath(html_filepath, self.mounted_dir)
-                    if verbose: print(f"\n- {file}\npath: {html_filepath}\nrelpath: {html_relpath}\n")
+                    fullpath, relpath = get_filepaths(wroot, file, self.mounted_dir)
 
                     # read html file to str
-                    with open(html_filepath, "r", encoding='utf-8') as f:
+                    with open(fullpath, "r", encoding='utf-8') as f:
                         html_content_buf= f.read()
                     
                     # prepare & add to html buffer
-                    html_render_obj_buf.append(HtmlRenderObj(html_content_buf, html_relpath))
+                    html_render_obj_buf.append(HtmlRenderObj(html_content_buf, relpath))
+
+                # >>> JS
+                if verbose: print(f"js...")
+                if file.endswith(".js"):
+                    fullpath, relpath = get_filepaths(wroot, file, self.mounted_dir)
+                    copy_recursive(fullpath, self.build_dir, relpath)
+
+                # >>> CSS
+                if verbose: print(f"css...")
+                if file.endswith(".css"):
+                    fullpath, relpath = get_filepaths(wroot, file, self.mounted_dir)
+                    copy_recursive(fullpath, self.build_dir, relpath)
             
             # <<<< file loop end
+            if verbose: print(f"\n<<<< file loop end\n")
+
         # <<<< walk loop end
 
         if verbose: print(f"HTML files to render (amount): {len(html_render_obj_buf)}")
@@ -125,6 +159,7 @@ class Homer:
 
         # move .html to build in proper routing order
 
+        # write all html
         for obj in html_render_obj_buf:
 
             # Set write path inside build folder
@@ -140,6 +175,7 @@ class Homer:
             if verbose: print(f"HTML written to '{obj.relpath}'")
 
         # move css, js to build
+
 
         time_build_end = time.time()
 
