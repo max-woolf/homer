@@ -1,3 +1,6 @@
+
+from homer.utils import remkdir, get_filepaths, copy_recursive, jpath
+import homer.globals as gl
 import click
 import os
 import shutil
@@ -16,59 +19,14 @@ import subprocess
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
-verbose = True
-base_dir = Path(__file__).parent
-
-
-
-def remkdir(path: str):
-    """
-    1. If dir exists, delete it
-    2. Create dir
-    """
-    if os.path.exists(path):
-        if verbose: print(f"removing existing build directory: /{path}/")
-        shutil.rmtree(path)        
-    if verbose: print(f"creating new build directory: /{path}/")
-    os.makedirs(path)
-
-def get_filepaths(rootdir, file, reldir):
-    """
-    Returns fullpath and relative path of file
-    """
-    fullpath = os.path.join(rootdir, file)
-    relpath = os.path.relpath(fullpath, reldir)
-    if verbose: print(f"{file} (path: {fullpath} || relpath: {relpath})")
-
-    return fullpath, relpath
-
-def copy_recursive(src, dst, rel):
-    """
-    Copies file recursively
-    """
-
-    # Construct destination path
-    dstpath = Path(dst) / rel
-
-    if verbose: print (f"copying '{src}' -> '{dstpath}'")
-
-    # Create subdirectories if needed
-    dstpath.parent.mkdir(parents=True, exist_ok=True)
-
-    # Copy the file
-    shutil.copy2(src, dstpath)
-
-def jpath(*args):
-    return Path("/".join(str(arg).strip("/") for arg in args))
-
-    
-
 class HtmlRenderObj:
     debug = True
+    content = ""
+    relpath = ""
 
     def __init__(self, content, relpath):
 
-        if verbose: print (f"creating html render obj '{relpath}'...")
+        if gl.verbose: print (f"creating html render obj '{relpath}'...")
 
         self.content = content
         self.relpath = relpath
@@ -77,31 +35,30 @@ class HomerTemplateEngine(Enum):
     JINJA2 = 1
 
 class Homer:
-    mounted_dir = ""
-    build_dir = "build"
-    template_engine = HomerTemplateEngine.JINJA2
-
     def __init__(self):
         pass
 
-    def mount(self, dirpath):
-        """Mount a directory"""
-        if verbose: print(f"mounting directory '{dirpath}'...")
-        self.mounted_dir = dirpath
+    def build(
+        self, 
+        src_dir="public", 
+        dst_dir="build", 
+        template_engine:HomerTemplateEngine=HomerTemplateEngine.JINJA2
+    ):
+        """
+        Build the project.
 
-    def build(self):
+        Args:
+            src_dir (str): Source directory to read files from. Default is "public".
+            dst_dir (str): Destination directory to output build files. Default is "build".
+            template_engine (HomerTemplateEngine): Template engine to use. Default is JINJA2.
+
         """
 
-        Build project
-
-        The "run" process is separate from the build
-
-        md -> templated html -> compiled html
-
-        """
+        if not os.path.exists(src_dir):
+            raise FolderNotFoundError(f"Could not find source directory '{src_dir}'")
 
         # create build directory
-        remkdir(self.build_dir)
+        remkdir(dst_dir)
 
         time_build_start = time.time() # tracks when build started
 
@@ -112,18 +69,18 @@ class Homer:
 
         # <<<< walk loop start
         
-        for (wroot, wdirs, wfiles) in os.walk(self.mounted_dir, topdown=True):
+        for (wroot, wdirs, wfiles) in os.walk(src_dir, topdown=True):
         
-            if verbose: print(f"\n=== build files ===\nroot: {wroot}\ndirs: {wdirs}\nfilenames: {wfiles}\n")
+            if gl.verbose: print(f"\n=== build files ===\nroot: {wroot}\ndirs: {wdirs}\nfilenames: {wfiles}\n")
 
             # <<<< file loop start
-            if verbose: print(f"<<<< file loop start\n")
+            if gl.verbose: print(f"<<<< file loop start\n")
             for file in wfiles:
 
                 # >>> MARKDOWN
-                if verbose: print(f"markdown...")
+                if gl.verbose: print(f"markdown...")
                 if file.endswith(".md"):
-                    fullpath, relpath = get_filepaths(wroot, file, self.mounted_dir)
+                    fullpath, relpath = get_filepaths(wroot, file, src_dir)
 
                     # read md file to str
                     with open(fullpath, "r", encoding='utf-8') as f:
@@ -137,9 +94,9 @@ class Homer:
                     html_render_obj_buf.append(HtmlRenderObj(html_content_buf, html_render_relpath))
 
                 # >>> HTML
-                if verbose: print(f"html...")
+                if gl.verbose: print(f"html...")
                 if file.endswith(".html"):
-                    fullpath, relpath = get_filepaths(wroot, file, self.mounted_dir)
+                    fullpath, relpath = get_filepaths(wroot, file, src_dir)
 
                     # read html file to str
                     with open(fullpath, "r", encoding='utf-8') as f:
@@ -149,45 +106,45 @@ class Homer:
                     html_render_obj_buf.append(HtmlRenderObj(html_content_buf, relpath))
 
                 # >>> JS
-                if verbose: print(f"js...")
+                if gl.verbose: print(f"js...")
                 if file.endswith(".js"):
-                    fullpath, relpath = get_filepaths(wroot, file, self.mounted_dir)
-                    copy_recursive(fullpath, self.build_dir, relpath)
+                    fullpath, relpath = get_filepaths(wroot, file, src_dir)
+                    copy_recursive(fullpath, dst_dir, relpath)
 
                 # >>> CSS
-                if verbose: print(f"css...")
+                if gl.verbose: print(f"css...")
                 if file.endswith(".css"):
-                    fullpath, relpath = get_filepaths(wroot, file, self.mounted_dir)
-                    copy_recursive(fullpath, self.build_dir, relpath)
+                    fullpath, relpath = get_filepaths(wroot, file, src_dir)
+                    copy_recursive(fullpath, dst_dir, relpath)
             
             # <<<< file loop end
-            if verbose: print(f"\n<<<< file loop end\n")
+            if gl.verbose: print(f"\n<<<< file loop end\n")
 
         # <<<< walk loop end
 
 
 
-        if verbose: print(f"HTML files to render (amount): {len(html_render_obj_buf)}")
+        if gl.verbose: print(f"HTML files to render (amount): {len(html_render_obj_buf)}")
 
-        if verbose:
-            if self.template_engine == HomerTemplateEngine.JINJA2: 
+        if gl.verbose:
+            if template_engine == HomerTemplateEngine.JINJA2: 
                 print(f"Template engine: Jinja2")
 
         # compile .html templates
-        if self.template_engine == HomerTemplateEngine.JINJA2:
+        if template_engine == HomerTemplateEngine.JINJA2:
 
             # JINJA2
 
-            template_dir = self.mounted_dir + '/templates'
+            template_dir = src_dir + '/templates'
             context = {}
 
-            if verbose: print(f"Template directory: {template_dir}")
+            if gl.verbose: print(f"Template directory: {template_dir}")
 
             if not os.path.exists(template_dir):
                 os.makedirs(template_dir)
             
             jinja_env = Environment(
-                loader=FileSystemLoader(self.mounted_dir),
+                loader=FileSystemLoader(src_dir),
                 autoescape=select_autoescape()
             )
 
@@ -195,7 +152,7 @@ class Homer:
                 template = jinja_env.from_string(obj.content)
                 rendered_content = template.render()
 
-                if verbose: print(f"Compiled template: {obj.relpath}")
+                if gl.verbose: print(f"Compiled template: {obj.relpath}")
 
                 obj.content = rendered_content
                 
@@ -204,7 +161,7 @@ class Homer:
         for obj in html_render_obj_buf:
 
             # dst path
-            write_path = os.path.join(self.build_dir, obj.relpath)
+            write_path = os.path.join(dst_dir, obj.relpath)
 
             # create subfolders if not exist
             os.makedirs(os.path.dirname(write_path), exist_ok=True)
@@ -213,13 +170,18 @@ class Homer:
             with open(write_path, 'w') as file:
                 file.write(obj.content)
 
-            if verbose: print(f"HTML written to '{obj.relpath}'")
+            if gl.verbose: print(f"HTML written to '{obj.relpath}'")
 
         time_build_end = time.time()
 
         print(f"\n=== BUILD SUCCESSFUL ===\nTook {time_build_end - time_build_start}s to build\n")
 
-    def run(self, host="127.0.0.1", port=8000, run_dir="build"):
+    def run(
+        self, 
+        host="127.0.0.1", 
+        port=8000, 
+        run_dir="build"
+    ):
         print("Running app...")
 
         app = FastAPI()
@@ -239,7 +201,7 @@ class Homer:
             # (though fastAPI already restricts it)
             safepath = full_path.strip().replace('..', '').replace('^', '')
 
-            if verbose: print(f"GET - Request path: '{full_path}' -> '{safepath}'")
+            if gl.verbose: print(f"GET - Request path: '{full_path}' -> '{safepath}'")
 
             if safepath == 'favicon.ico':
                 return
@@ -268,6 +230,6 @@ class Homer:
                     raise HTTPException(status_code=404, detail="Page not found")
 
         # run app
-        if verbose: print(f"Starting API with uvicorn...")
+        if gl.verbose: print(f"Starting API with uvicorn...")
 
         uvicorn.run(app, host=host, port=port)

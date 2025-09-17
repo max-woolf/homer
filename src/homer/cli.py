@@ -1,12 +1,10 @@
 
 import click
 from homer.core import Homer
-
+import homer.globals as gl
 
 
 homer = Homer()
-homer.mount('./testdir')
-
 
 
 # === CLI
@@ -76,17 +74,29 @@ def dev():
         observer.join()
 
 @cli.command()
-def build():
+@click.option('--src', default='public', help='Directory to build from')
+@click.option('--dst', default='build', help='Directory to build to')
+@click.option('--verbose', default=False, help='Print more information')
+def build(src, dst, verbose):
     """Build the project"""
+
+    gl.verbose = verbose
+
     click.echo("Building the project...")
-    homer.build()
+    homer.build(src_dir=src, dst_dir=dst)
 
 @cli.command()
-def run():
+@click.option('--src', default='public', help='Directory to build from')
+@click.option('--dst', default='build', help='Directory to build to')
+@click.option('--verbose', default=False, help='Print more information')
+def run(dir, dst, verbose):
     """Run the project"""
     click.echo("Running project...")
-    homer.build()
-    homer.run()
+
+    gl.verbose = verbose
+
+    homer.build(src_dir=src, dst_dir=dst)
+    homer.run(run_dir=dst)
 
 if __name__ == '__main__':
     cli()
