@@ -20,6 +20,10 @@ import markdown
 import time
 import typing
 from pathlib import Path
+from fastapi import FastAPI
+from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
+import uvicorn
 
 verbose = True
 
@@ -40,7 +44,7 @@ def get_filepaths(rootdir, file, reldir):
     """
     fullpath = os.path.join(rootdir, file)
     relpath = os.path.relpath(fullpath, reldir)
-    if verbose: print(f"{file} (path: {fullpath} / relpath: {relpath})")
+    if verbose: print(f"{file} (path: {fullpath} || relpath: {relpath})")
 
     return fullpath, relpath
 
@@ -165,34 +169,34 @@ class Homer:
 
         # compile .html templates
 
-        # move .html to build in proper routing order
-
         # write all html
         for obj in html_render_obj_buf:
 
-            # Set write path inside build folder
+            # dst path
             write_path = os.path.join(self.build_dir, obj.relpath)
 
-            # Create subfolders if doesn't exist
+            # create subfolders if not exist
             os.makedirs(os.path.dirname(write_path), exist_ok=True)
 
-            # Write file
+            # write file to dst path
             with open(write_path, 'w') as file:
                 file.write(obj.content)
 
             if verbose: print(f"HTML written to '{obj.relpath}'")
 
-        # move css, js to build
-
-
         time_build_end = time.time()
 
         print(f"\n=== BUILD SUCCESSFUL ===\nTook {time_build_end - time_build_start}s to build\n")
 
-    def run(self):
+    def run(self, host="127.0.0.1", port=8000, run_dir="build"):
         print("run")
 
         # setup fastapi
+        app = FastAPI()
+        app.mount("/", StaticFiles(directory=run_dir), name="build")
+
+        # run app
+        uvicorn.run(app, host=host, port=port)
 
 
 
@@ -220,7 +224,9 @@ def build():
 @cli.command()
 def run():
     """Run the project"""
-    click.echo("Strating the project...")
+    click.echo("Running project...")
+    homer.build()
+    homer.run()
 
 if __name__ == '__main__':
     cli()
