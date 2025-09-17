@@ -61,6 +61,8 @@ def copy_recursive(src, dst, rel):
 def jpath(*args):
     return Path("/".join(str(arg).strip("/") for arg in args))
 
+    
+
 class HtmlRenderObj:
     debug = True
 
