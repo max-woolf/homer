@@ -15,9 +15,6 @@ import uvicorn
 from enum import Enum
 from jinja2 import Environment, PackageLoader, select_autoescape, FileSystemLoader
 import sys
-import subprocess
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
 
 class HtmlRenderObj:
     debug = True
