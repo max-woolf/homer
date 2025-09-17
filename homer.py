@@ -27,6 +27,11 @@ import uvicorn
 
 verbose = True
 
+# setup fastapi
+# max: im doing this in top-level to enable uvicorn reload
+# build directory is mounted in the run function
+app = FastAPI()
+
 def remkdir(path: str):
     """
     1. If dir exists, delete it
@@ -196,8 +201,6 @@ class Homer:
     def run(self, reload=False, host="127.0.0.1", port=8000, run_dir="build"):
         print("Running app...")
 
-        # setup fastapi
-        app = FastAPI()
         app.mount("/static", StaticFiles(directory=run_dir), name="build")
 
         @app.get("/ping")
@@ -242,7 +245,7 @@ class Homer:
 
         # run app
         if verbose: print(f"Starting API with uvicorn...")
-        uvicorn.run(app, host=host, port=port, reload=reload)
+        uvicorn.run("homer:app", host=host, port=port, reload=reload)
 
 
 
