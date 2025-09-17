@@ -89,7 +89,7 @@ def build(src, dst, verbose):
 @click.option('--src', default='public', help='Directory to build from')
 @click.option('--dst', default='build', help='Directory to build to')
 @click.option('--verbose', default=False, help='Print more information')
-def run(dir, dst, verbose):
+def run(src, dst, verbose):
     """Run the project"""
     click.echo("Running project...")
 
