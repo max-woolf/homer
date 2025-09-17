@@ -215,13 +215,17 @@ class Homer:
             if safepath == 'favicon.ico':
                 return
 
+            # root index
             if safepath == '':
                 return FileResponse(jpath(run_dir, "index.html"), media_type="text/html")
             
+            # subfolder index
             att_idx_path = jpath(run_dir, safepath, "index.html")
             print(f"GET - Attempting index path '{att_idx_path}'")
             if att_idx_path.exists():
                 return FileResponse(att_idx_path)
+            
+            # subfolder file
             else:
                 att_filepath = jpath(run_dir, safepath)
                 att_filepath_html = att_filepath.with_suffix(".html")
