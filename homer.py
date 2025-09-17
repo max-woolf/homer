@@ -20,7 +20,7 @@ import markdown
 import time
 import typing
 from pathlib import Path
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 import uvicorn
@@ -63,6 +63,9 @@ def copy_recursive(src, dst, rel):
 
     # Copy the file
     shutil.copy2(src, dstpath)
+
+def jpath(*args):
+    return Path("/".join(str(arg).strip("/") for arg in args))
 
 
 class HtmlRenderObj:
@@ -189,13 +192,49 @@ class Homer:
         print(f"\n=== BUILD SUCCESSFUL ===\nTook {time_build_end - time_build_start}s to build\n")
 
     def run(self, host="127.0.0.1", port=8000, run_dir="build"):
-        print("run")
+        print("Running app...")
 
         # setup fastapi
         app = FastAPI()
-        app.mount("/", StaticFiles(directory=run_dir), name="build")
+        app.mount("/static", StaticFiles(directory=run_dir), name="build")
+
+        @app.get("/ping")
+        async def pong():
+            return {"message": "pong"}
+
+        # file-based routing
+        @app.get("/{full_path:path}")
+        async def serve_page(full_path: str, request: Request):
+
+            # sanitize path
+            # (though fastAPI already restricts it)
+            safepath = full_path.strip().replace('..', '').replace('^', '')
+
+            if verbose: print(f"GET - Request path: '{full_path}' -> '{safepath}'")
+
+            if safepath == 'favicon.ico':
+                return
+
+            if safepath == '':
+                return FileResponse(jpath(run_dir, "index.html"), media_type="text/html")
+            
+            att_idx_path = jpath(run_dir, safepath, "index.html")
+            print(f"GET - Attempting index path '{att_idx_path}'")
+            if att_idx_path.exists():
+                return FileResponse(att_idx_path)
+            else:
+                att_filepath = jpath(run_dir, safepath)
+                att_filepath_html = att_filepath.with_suffix(".html")
+
+                print(f"GET - Attempting file '{att_filepath_html}'")
+
+                if att_filepath_html.exists():
+                    return FileResponse(att_filepath_html)
+                else:
+                    raise HTTPException(status_code=404, detail="Page not found")
 
         # run app
+        if verbose: print(f"Starting API with uvicorn...")
         uvicorn.run(app, host=host, port=port)
 
 
