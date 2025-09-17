@@ -364,7 +364,6 @@ def dev():
         observer.stop()
         observer.join()
 
-
 @cli.command()
 def build():
     """Build the project"""
