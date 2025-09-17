@@ -269,11 +269,3 @@ class Homer:
         if verbose: print(f"Starting API with uvicorn...")
 
         uvicorn.run(app, host=host, port=port)
-
-
-
-
-
-
-
-# provide cli to run & build
