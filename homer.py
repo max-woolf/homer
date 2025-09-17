@@ -18,8 +18,19 @@ import os
 import shutil
 import markdown
 import time
+import typing
 
 # store Homer data
+
+class HtmlRenderObj:
+    debug = True
+
+    def __init__(self, content, relpath):
+
+        if self.debug: print (f"creating html render obj '{relpath}'...")
+
+        self.content = content
+        self.relpath = relpath
 
 class Homer:
     mounted_dir = ""
@@ -45,8 +56,18 @@ class Homer:
 
         """
 
+        # create build directory
+
+        if os.path.exists(self.build_dir):
+            if self.debug: print(f"removing existing build directory: /{self.build_dir}/")
+            shutil.rmtree(self.build_dir)        
+        if self.debug: print(f"creating new build directory: /{self.build_dir}/")
+        os.makedirs(self.build_dir)
+
+        time_build_start = time.time()
+
         # this should hold the tuple: (html_content, relpath)
-        html_to_render = []
+        html_render_obj_buf: list[HtmlRenderObj] = list()
         for (wroot, wdirs, wfiles) in os.walk(self.mounted_dir, topdown=True):
 
             if self.debug: print(f"\n=== build files ===\nroot: {wroot}\ndirs: {wdirs}\nfilenames: {wfiles}\n\n")
@@ -54,6 +75,8 @@ class Homer:
             # file loop start
 
             for file in wfiles:
+
+                # >>> MARKDOWN
                 if self.debug: print(f"rendering markdown files to html...")
                 if file.endswith(".md"):
                     md_filepath = os.path.join(wroot, file)
@@ -66,11 +89,16 @@ class Homer:
                         md_buf = f.read()
 
                     # convert str to html
-                    html_conv_buf = markdown.markdown(md_buf) # html conversion buffer
+                    html_content_buf = markdown.markdown(md_buf) # html conversion buffer
 
-                    # append to html list
-                    html_to_render.append((html_conv_buf, md_relpath))
+                    html_render_relpath = md_relpath.replace(".md", ".html")
+
+                    html_render_obj_buf.append(HtmlRenderObj(html_content_buf, html_render_relpath))
+
+
                 
+
+                # >>> HTML
                 if self.debug: print(f"reading html files...")
                 if file.endswith(".html"):
                     html_filepath = os.path.join(wroot, file)
@@ -80,29 +108,37 @@ class Homer:
 
                     # read html file to str
                     with open(html_filepath, "r", encoding='utf-8') as f:
-                        html_buf = f.read()
+                        html_content_buf= f.read()
                     
-                    html_to_render.append((html_buf, html_relpath))
+                    html_render_obj_buf.append(HtmlRenderObj(html_content_buf, html_relpath))
             
             # file loop end
 
-        if self.debug: print(f"HTML files to render: {len(html_to_render)}")
-
-        
-                
-
-        if os.path.exists(self.build_dir):
-            if self.debug: print(f"removing existing build directory: /{self.build_dir}/")
-            shutil.rmtree(self.build_dir)
-        
-        if self.debug: print(f"creating new build directory: /{self.build_dir}/")
-        os.makedirs(self.build_dir)
+        if self.debug: print(f"HTML files to render: {len(html_render_obj_buf)}")
 
         # compile .html templates
 
         # move .html to build in proper routing order
 
+        for obj in html_render_obj_buf:
+
+            # Set write path inside build folder
+            write_path = os.path.join(self.build_dir, obj.relpath)
+
+            # Create subfolders if doesn't exist
+            os.makedirs(os.path.dirname(write_path), exist_ok=True)
+
+            # Write file
+            with open(write_path, 'w') as file:
+                file.write(obj.content)
+
+            if self.debug: print(f"HTML written to '{obj.relpath}'")
+
         # move css, js to build
+
+        time_build_end = time.time()
+
+        print(f"\n=== BUILD SUCCESSFUL ===\nTook {time_build_end - time_build_start}s to build\n")
 
     def run(self):
         print("run")
