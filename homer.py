@@ -103,6 +103,7 @@ class Homer:
         html_render_obj_buf: list[HtmlRenderObj] = list()
 
         # <<<< walk loop start
+        
         for (wroot, wdirs, wfiles) in os.walk(self.mounted_dir, topdown=True):
         
             if verbose: print(f"\n=== build files ===\nroot: {wroot}\ndirs: {wdirs}\nfilenames: {wfiles}\n")
