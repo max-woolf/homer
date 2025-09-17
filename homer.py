@@ -102,6 +102,8 @@ class Homer:
         # buffer for html file info
         html_render_obj_buf: list[HtmlRenderObj] = list()
 
+
+
         # <<<< walk loop start
         
         for (wroot, wdirs, wfiles) in os.walk(self.mounted_dir, topdown=True):
@@ -156,6 +158,8 @@ class Homer:
             if verbose: print(f"\n<<<< file loop end\n")
 
         # <<<< walk loop end
+
+
 
         if verbose: print(f"HTML files to render (amount): {len(html_render_obj_buf)}")
 
