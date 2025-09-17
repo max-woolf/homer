@@ -24,13 +24,14 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 import uvicorn
+from lark import Lark
+from enum import Enum
+from jinja2 import Environment, PackageLoader, select_autoescape, FileSystemLoader
 
 verbose = True
+base_dir = Path(__file__).parent
 
-# setup fastapi
-# max: im doing this in top-level to enable uvicorn reload
-# build directory is mounted in the run function
-app = FastAPI()
+
 
 def remkdir(path: str):
     """
@@ -72,6 +73,12 @@ def copy_recursive(src, dst, rel):
 def jpath(*args):
     return Path("/".join(str(arg).strip("/") for arg in args))
 
+"""
+class HomericTemplate:
+    parser = Lark(
+        
+    )
+"""
 
 class HtmlRenderObj:
     debug = True
@@ -83,9 +90,13 @@ class HtmlRenderObj:
         self.content = content
         self.relpath = relpath
 
+class HomerTemplateEngine(Enum):
+    JINJA2 = 1
+
 class Homer:
     mounted_dir = ""
     build_dir = "build"
+    template_engine = HomerTemplateEngine.JINJA2
 
     def __init__(self):
         pass
@@ -175,9 +186,36 @@ class Homer:
 
         if verbose: print(f"HTML files to render (amount): {len(html_render_obj_buf)}")
 
-        # compile .html templates
-        #for obj in html_render_obj_buf:
+        if verbose:
+            if self.template_engine == HomerTemplateEngine.JINJA2: 
+                print(f"Template engine: Jinja2")
 
+        # compile .html templates
+        if self.template_engine == HomerTemplateEngine.JINJA2:
+
+            # JINJA2
+
+            template_dir = self.mounted_dir + '/templates'
+            context = {}
+
+            if verbose: print(f"Template directory: {template_dir}")
+
+            if not os.path.exists(template_dir):
+                os.makedirs(template_dir)
+            
+            jinja_env = Environment(
+                loader=FileSystemLoader(self.mounted_dir),
+                autoescape=select_autoescape()
+            )
+
+            for obj in html_render_obj_buf:
+                template = jinja_env.from_string(obj.content)
+                rendered_content = template.render()
+
+                if verbose: print(f"Compiled template: {obj.relpath}")
+
+                obj.content = rendered_content
+                
 
         # write all html
         for obj in html_render_obj_buf:
@@ -200,6 +238,8 @@ class Homer:
 
     def run(self, reload=False, host="127.0.0.1", port=8000, run_dir="build"):
         print("Running app...")
+
+        app = FastAPI()
 
         app.mount("/static", StaticFiles(directory=run_dir), name="build")
 
@@ -229,10 +269,11 @@ class Homer:
             att_idx_path = jpath(run_dir, safepath, "index.html")
             print(f"GET - Attempting index path '{att_idx_path}'")
             if att_idx_path.exists():
+                # subfolder index
                 return FileResponse(att_idx_path)
-            
-            # subfolder file
             else:
+                # subfolder file
+
                 att_filepath = jpath(run_dir, safepath)
                 att_filepath_html = att_filepath.with_suffix(".html")
 
@@ -245,7 +286,8 @@ class Homer:
 
         # run app
         if verbose: print(f"Starting API with uvicorn...")
-        uvicorn.run("homer:app", host=host, port=port, reload=reload)
+
+        uvicorn.run(app, host=host, port=port, reload=reload)
 
 
 
