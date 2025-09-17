@@ -20,29 +20,40 @@ import markdown
 import time
 import typing
 
-# store Homer data
+verbose = True
+
+def remkdir(path: str):
+    """
+    1. If dir exists, delete it
+    2. Create dir
+    """
+    if os.path.exists(path):
+        if verbose: print(f"removing existing build directory: /{path}/")
+        shutil.rmtree(path)        
+    if verbose: print(f"creating new build directory: /{path}/")
+    os.makedirs(path)
+
 
 class HtmlRenderObj:
     debug = True
 
     def __init__(self, content, relpath):
 
-        if self.debug: print (f"creating html render obj '{relpath}'...")
+        if verbose: print (f"creating html render obj '{relpath}'...")
 
         self.content = content
         self.relpath = relpath
 
 class Homer:
     mounted_dir = ""
-    build_dir = "dist"
-    debug = True # debug flag
+    build_dir = "build"
 
     def __init__(self):
         pass
 
     def mount(self, dirpath):
         """Mount a directory"""
-        if self.debug: print(f"mounting directory '{dirpath}'...")
+        if verbose: print(f"mounting directory '{dirpath}'...")
         self.mounted_dir = dirpath
 
     def build(self):
@@ -57,32 +68,28 @@ class Homer:
         """
 
         # create build directory
+        remkdir(self.build_dir)
 
-        if os.path.exists(self.build_dir):
-            if self.debug: print(f"removing existing build directory: /{self.build_dir}/")
-            shutil.rmtree(self.build_dir)        
-        if self.debug: print(f"creating new build directory: /{self.build_dir}/")
-        os.makedirs(self.build_dir)
+        time_build_start = time.time() # tracks when build started
 
-        time_build_start = time.time()
-
-        # this should hold the tuple: (html_content, relpath)
+        # buffer for html file info
         html_render_obj_buf: list[HtmlRenderObj] = list()
+
+        # <<<< walk loop start
         for (wroot, wdirs, wfiles) in os.walk(self.mounted_dir, topdown=True):
+        
+            if verbose: print(f"\n=== build files ===\nroot: {wroot}\ndirs: {wdirs}\nfilenames: {wfiles}\n\n")
 
-            if self.debug: print(f"\n=== build files ===\nroot: {wroot}\ndirs: {wdirs}\nfilenames: {wfiles}\n\n")
-
-            # file loop start
+            # <<<< file loop start
 
             for file in wfiles:
 
                 # >>> MARKDOWN
-                if self.debug: print(f"rendering markdown files to html...")
+                if verbose: print(f"rendering markdown files to html...")
                 if file.endswith(".md"):
                     md_filepath = os.path.join(wroot, file)
                     md_relpath = os.path.relpath(md_filepath, self.mounted_dir)
-
-                    if self.debug: print(f"\n- {file}\npath: {md_filepath}\nrelpath: {md_relpath}\n")
+                    if verbose: print(f"\n- {file}\npath: {md_filepath}\nrelpath: {md_relpath}\n")
 
                     # read md file to str
                     with open(md_filepath, "r", encoding='utf-8') as f:
@@ -91,30 +98,28 @@ class Homer:
                     # convert str to html
                     html_content_buf = markdown.markdown(md_buf) # html conversion buffer
 
+                    # prepare & add to html buffer
                     html_render_relpath = md_relpath.replace(".md", ".html")
-
                     html_render_obj_buf.append(HtmlRenderObj(html_content_buf, html_render_relpath))
 
-
-                
-
                 # >>> HTML
-                if self.debug: print(f"reading html files...")
+                if verbose: print(f"reading html files...")
                 if file.endswith(".html"):
                     html_filepath = os.path.join(wroot, file)
                     html_relpath = os.path.relpath(html_filepath, self.mounted_dir)
-
-                    if self.debug: print(f"\n- {file}\npath: {html_filepath}\nrelpath: {html_relpath}\n")
+                    if verbose: print(f"\n- {file}\npath: {html_filepath}\nrelpath: {html_relpath}\n")
 
                     # read html file to str
                     with open(html_filepath, "r", encoding='utf-8') as f:
                         html_content_buf= f.read()
                     
+                    # prepare & add to html buffer
                     html_render_obj_buf.append(HtmlRenderObj(html_content_buf, html_relpath))
             
-            # file loop end
+            # <<<< file loop end
+        # <<<< walk loop end
 
-        if self.debug: print(f"HTML files to render: {len(html_render_obj_buf)}")
+        if verbose: print(f"HTML files to render (amount): {len(html_render_obj_buf)}")
 
         # compile .html templates
 
@@ -132,7 +137,7 @@ class Homer:
             with open(write_path, 'w') as file:
                 file.write(obj.content)
 
-            if self.debug: print(f"HTML written to '{obj.relpath}'")
+            if verbose: print(f"HTML written to '{obj.relpath}'")
 
         # move css, js to build
 
