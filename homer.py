@@ -203,6 +203,7 @@ class Homer:
             return {"message": "pong"}
 
         # file-based routing
+        # (non-html files can be accessed through /static/)
         @app.get("/{full_path:path}")
         async def serve_page(full_path: str, request: Request):
 
