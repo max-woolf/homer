@@ -8,7 +8,7 @@
 #
 # - file-based routing
 # - auto markdown-to-html builds
-# - minimalist templating
+# - templating support
 # - no js by default
 
 # ==================================
@@ -171,6 +171,8 @@ class Homer:
         if verbose: print(f"HTML files to render (amount): {len(html_render_obj_buf)}")
 
         # compile .html templates
+        #for obj in html_render_obj_buf:
+
 
         # write all html
         for obj in html_render_obj_buf:
@@ -191,7 +193,7 @@ class Homer:
 
         print(f"\n=== BUILD SUCCESSFUL ===\nTook {time_build_end - time_build_start}s to build\n")
 
-    def run(self, host="127.0.0.1", port=8000, run_dir="build"):
+    def run(self, reload=False, host="127.0.0.1", port=8000, run_dir="build"):
         print("Running app...")
 
         # setup fastapi
@@ -240,7 +242,7 @@ class Homer:
 
         # run app
         if verbose: print(f"Starting API with uvicorn...")
-        uvicorn.run(app, host=host, port=port)
+        uvicorn.run(app, host=host, port=port, reload=reload)
 
 
 
@@ -257,7 +259,9 @@ def cli():
 @cli.command()
 def dev():
     """Run in development mode"""
-    click.echo("Running in development mode...")
+    click.echo("Running project in development mode...")
+    homer.build()
+    homer.run(reload=True)
 
 @cli.command()
 def build():
