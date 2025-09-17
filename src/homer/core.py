@@ -9,7 +9,6 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 import uvicorn
-from lark import Lark
 from enum import Enum
 from jinja2 import Environment, PackageLoader, select_autoescape, FileSystemLoader
 import sys
@@ -61,13 +60,6 @@ def copy_recursive(src, dst, rel):
 
 def jpath(*args):
     return Path("/".join(str(arg).strip("/") for arg in args))
-
-"""
-class HomericTemplate:
-    parser = Lark(
-        
-    )
-"""
 
 class HtmlRenderObj:
     debug = True
