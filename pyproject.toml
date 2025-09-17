@@ -15,8 +15,7 @@ dependencies = [
     "jinja2",
     "fastapi",
     "uvicorn",
-    "watchdog",
-    "lark"
+    "watchdog"
 ]
 
 [project.scripts]
