@@ -45,6 +45,9 @@ def get_filepaths(rootdir, file, reldir):
     return fullpath, relpath
 
 def copy_recursive(src, dst, rel):
+    """
+    Copies file recursively
+    """
 
     # Construct destination path
     dstpath = Path(dst) / rel
