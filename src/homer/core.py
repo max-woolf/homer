@@ -202,8 +202,9 @@ class Homer:
 
             if gl.verbose: print(f"GET - Request path: '{full_path}' -> '{safepath}'")
 
-            if safepath == 'favicon.ico':
-                return
+            # ignore
+            if safepath == 'favicon.ico' or safepath.startswith("templates"):
+                raise HTTPException(status_code=404, detail="Page not found")
 
             # root index
             if safepath == '':
