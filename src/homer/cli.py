@@ -93,14 +93,15 @@ def dev(src, dst, verbose):
 @cli.command()
 @click.option('--src', default='public', help='Directory to build from')
 @click.option('--dst', default='build', help='Directory to build to')
+@click.option('--ctx', default={}, help='Context for templates')
 @click.option('--verbose', default=False, help='Print more information')
-def build(src, dst, verbose):
+def build(src, dst, ctx, verbose):
     """Build the project"""
 
     gl.verbose = verbose
 
     click.echo("Building the project...")
-    homer.build(src_dir=src, dst_dir=dst)
+    homer.build(src_dir=src, dst_dir=dst, context=ctx)
 
 @cli.command()
 @click.option('--src', default='public', help='Directory to build from')

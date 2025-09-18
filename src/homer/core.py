@@ -16,6 +16,10 @@ from enum import Enum
 from jinja2 import Environment, PackageLoader, select_autoescape, FileSystemLoader
 import sys
 
+
+app = FastAPI()
+
+
 class HtmlRenderObj:
     debug = True
     content = ""
@@ -39,7 +43,8 @@ class Homer:
         self, 
         src_dir="public", 
         dst_dir="build", 
-        template_engine:HomerTemplateEngine=HomerTemplateEngine.JINJA2
+        template_engine:HomerTemplateEngine=HomerTemplateEngine.JINJA2,
+        context={}
     ):
         """
         Build the project.
@@ -133,7 +138,6 @@ class Homer:
             # JINJA2
 
             template_dir = src_dir + '/templates'
-            context = {}
 
             if gl.verbose: print(f"Template directory: {template_dir}")
 
@@ -147,7 +151,7 @@ class Homer:
 
             for obj in html_render_obj_buf:
                 template = jinja_env.from_string(obj.content)
-                rendered_content = template.render()
+                rendered_content = template.render(context)
 
                 if gl.verbose: print(f"Compiled template: {obj.relpath}")
 
@@ -180,8 +184,6 @@ class Homer:
         run_dir="build"
     ):
         print("Running app...")
-
-        app = FastAPI()
 
         app.mount("/static", StaticFiles(directory=run_dir), name="build")
 
