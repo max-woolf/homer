@@ -185,6 +185,7 @@ class Homer:
     ):
         print("Running app...")
 
+        # note: html has to request /static/
         app.mount("/static", StaticFiles(directory=run_dir), name="build")
 
         @app.get("/ping")
