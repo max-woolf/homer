@@ -8,6 +8,7 @@ from watchdog.events import FileSystemEventHandler
 import os
 import time
 import sys
+import json
 
 
 homer = Homer()
@@ -93,15 +94,20 @@ def dev(src, dst, verbose):
 @cli.command()
 @click.option('--src', default='public', help='Directory to build from')
 @click.option('--dst', default='build', help='Directory to build to')
-@click.option('--ctx', default={}, help='Context for templates')
+@click.option('--ctx', default='{}', help='Context for templates')
 @click.option('--verbose', default=False, help='Print more information')
 def build(src, dst, ctx, verbose):
     """Build the project"""
 
     gl.verbose = verbose
 
+    try:
+        ctx_parsed = json.loads(ctx)
+    except json.JSONDecodeError as err:
+        raise click.BadParameter(f"Invalid JSON for --ctx: {err}")
+
     click.echo("Building the project...")
-    homer.build(src_dir=src, dst_dir=dst, context=ctx)
+    homer.build(src_dir=src, dst_dir=dst, context=ctx_parsed)
 
 @cli.command()
 @click.option('--src', default='public', help='Directory to build from')
