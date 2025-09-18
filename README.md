@@ -5,7 +5,8 @@ a minimalist ssg framework for generating personal wikis and archiving your manu
 
 ## Features
 
-- file-based routing
+- file-based routing (serverside)
 - auto markdown-to-html builds
 - templating support
 - no js by default
+- hot reload (WIP)
