@@ -95,6 +95,8 @@ class Homer:
                     # prepare & add to html buffer
                     html_render_relpath = relpath.replace(".md", ".html")
                     html_render_obj_buf.append(HtmlRenderObj(html_content_buf, html_render_relpath))
+                    
+                    continue
 
                 # >>> HTML
                 if gl.verbose: print(f"html...")
@@ -108,17 +110,27 @@ class Homer:
                     # prepare & add to html buffer
                     html_render_obj_buf.append(HtmlRenderObj(html_content_buf, relpath))
 
+                    continue
+
                 # >>> JS
                 if gl.verbose: print(f"js...")
                 if file.endswith(".js"):
                     fullpath, relpath = get_filepaths(wroot, file, src_dir)
                     copy_recursive(fullpath, dst_dir, relpath)
 
+                    continue
+
                 # >>> CSS
                 if gl.verbose: print(f"css...")
                 if file.endswith(".css"):
                     fullpath, relpath = get_filepaths(wroot, file, src_dir)
                     copy_recursive(fullpath, dst_dir, relpath)
+
+                    continue
+                
+                if gl.verbose: print(f"other files...")
+                fullpath, relpath = get_filepaths(wroot, file, src_dir)
+                copy_recursive(fullpath, dst_dir, relpath)
             
             # <<<< file loop end
             if gl.verbose: print(f"\n<<<< file loop end\n")
