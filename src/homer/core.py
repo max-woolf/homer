@@ -44,7 +44,8 @@ class Homer:
         src_dir="public", 
         dst_dir="build", 
         template_engine:HomerTemplateEngine=HomerTemplateEngine.JINJA2,
-        context={}
+        context={},
+        ctx_html_path_key = "paths"
     ):
         """
         Build the project.
@@ -131,6 +132,17 @@ class Homer:
         if gl.verbose:
             if template_engine == HomerTemplateEngine.JINJA2: 
                 print(f"Template engine: Jinja2")
+
+        # >> context setup start
+
+        # list files for templating context
+        context[ctx_html_path_key] = []
+        for obj in html_render_obj_buf:
+            context[ctx_html_path_key].append(obj.relpath.replace(".html", ""))
+        
+        ## << context setup end
+
+        print(f"Context: {context}")
 
         # compile .html templates
         if template_engine == HomerTemplateEngine.JINJA2:
